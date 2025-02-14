@@ -389,6 +389,11 @@ x-shared-env: &shared-api-worker-env
   CREATE_TIDB_SERVICE_JOB_ENABLED: ${CREATE_TIDB_SERVICE_JOB_ENABLED:-false}
   MAX_SUBMIT_COUNT: ${MAX_SUBMIT_COUNT:-100}
   TOP_K_MAX_VALUE: ${TOP_K_MAX_VALUE:-10}
+  WWW_SITE_POSTGRES_DB: ${WWW_SITE_POSTGRES_DB:-starter}
+  WWW_SITE_BASE_URL: ${WWW_SITE_BASE_URL:-http://localhost:3000}
+  WWW_SITE_AUTH_SECRET: ${WWW_SITE_AUTH_SECRET:-}
+  WWW_SITE_STRIPE_SECRET_KEY: ${WWW_SITE_STRIPE_SECRET_KEY:-}
+  WWW_SITE_STRIPE_WEBHOOK_SECRET: ${WWW_SITE_STRIPE_WEBHOOK_SECRET:-}
 
 services:
   # API service
@@ -949,6 +954,31 @@ services:
     restart: always
     volumes:
       - ./volumes/unstructured:/app/data
+
+  # Frontend web application
+  www-site:
+    build:
+      context: ./www-site
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      # Database connection
+      POSTGRES_URL: postgresql://${PGVECTOR_PGUSER:-postgres}:${PGVECTOR_POSTGRES_PASSWORD:-difyai123456}@db:5432/${WWW_SITE_POSTGRES_DB:-dify}
+      # Stripe configuration
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # App configuration
+      BASE_URL: ${WWW_SITE_BASE_URL:-http://localhost:3000}
+      AUTH_SECRET: ${WWW_SITE_AUTH_SECRET:-}
+      # Database initialization
+      SEED_DATABASE: ${SEED_DATABASE:-false}
+    ports:
+      - "${WWW_SITE_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default
 
 networks:
   # create a network between sandbox, api and ssrf_proxy, and can not access outside.
